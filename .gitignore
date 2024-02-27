@@ -1,0 +1,6 @@
+*.csv
+*.txt
+*.xml
+.idea/*
+output/*
+data/*
