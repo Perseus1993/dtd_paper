@@ -24,4 +24,9 @@ class Traffic_State:
         for segment in self.road_segments.values():
             segment['cur_traffic'] = 0
 
+    def get_speed(self, u, v):
+        """返回道路段(u, v)的速度"""
+        segment = self.road_segments[(u, v)]
+        return max(6 - segment['cur_traffic'], 1)
+
 

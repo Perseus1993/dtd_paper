@@ -125,7 +125,7 @@ class Env:
         for index, agent in enumerate(self.agents):
             if agent.state.status == AgentStatus.TRAVELLING:
                 logging.debug(f"Agent {agent.id} is travelling.")
-                agent.agent_keep_travelling()
+                agent.agent_keep_travelling(self.traffic_state)
             else:
                 if actions[index] != -1:
                     agent.step(actions[index])

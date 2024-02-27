@@ -2,6 +2,7 @@ import argparse
 import os
 import pickle
 
+import numpy as np
 from exp.get_graph import get_graph
 import logging
 import importlib
@@ -16,7 +17,7 @@ if __name__ == '__main__':
     # 为每个参数添加默认值
     parser.add_argument("--schedule", nargs='+', type=str, default=["HOME", "WORK", "LEISURE"],
                         help="List of activities (e.g., HOME WORK LEISURE)")
-    parser.add_argument("--num_episodes", type=int, default=10000, help="Number of episodes for Q-learning")
+    parser.add_argument("--num_episodes", type=int, default=100000, help="Number of episodes for Q-learning")
     parser.add_argument("--epsilon", type=float, default=0.2, help="Epsilon value for epsilon-greedy policy")
     parser.add_argument("--home", type=int, default=1, help="Home node ID")
 
@@ -60,13 +61,27 @@ if __name__ == '__main__':
     plt.plot(record, label='Training Reward')
 
     # Plot test rewards for each agent
+    def moving_average(data, window_size):
+        """计算数组的滑动平均值"""
+        cumsum = np.cumsum(np.insert(data, 0, 0))
+        return (cumsum[window_size:] - cumsum[:-window_size]) / float(window_size)
+
+
+    # 假设 test_x 和 test_record 已经定义
+    # num_agents = 3  # 示例代理数量
+    window_size = 10  # 滑动窗口大小，可以根据需要调整
+
     for agent_idx in range(num_agents):
-        agent_rewards = [test[agent_idx] for test in test_record]  # Extract rewards for this agent across all tests
-        plt.plot(test_x, agent_rewards, label=f'Agent {agent_idx + 1} Test Reward')
+        agent_rewards = [test[agent_idx] for test in test_record]  # 提取该代理在所有测试中的奖励
+        smooth_rewards = moving_average(agent_rewards, window_size)  # 计算滑动平均值以平滑曲线
+
+        # 为了对齐数据，我们需要调整 x 坐标
+        smooth_x = test_x[window_size - 1:]
+
+        plt.plot(smooth_x, smooth_rewards, label=f'Agent {agent_idx + 1} Test Reward')
 
     plt.xlabel('Episode')
     plt.ylabel('Reward')
-    plt.legend()
     plt.show()
 
     # 使用format方法创建文件名和文件夹名

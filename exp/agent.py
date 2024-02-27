@@ -6,6 +6,8 @@ import random
 from enum import Enum, auto
 import networkx as nx
 
+from exp.traffic import Traffic_State
+
 
 class Activity(Enum):
     HOME = auto()
@@ -296,9 +298,12 @@ class Agent:
         logging.debug(f"Agent is staying at {self.state.current_node}.")
         self.state.stay_at_current_node()
 
-    def agent_keep_travelling(self):
+    def agent_keep_travelling(self, traffic_state: Traffic_State):
         total_distance = self.state.current_travel.total_distance
-        speed = 5.0  # 1.0 表示每个时间步长移动一个单位距离
+        speed = traffic_state.get_speed(self.state.current_travel.get_current_road_segment()[0],
+                                        self.state.current_travel.get_current_road_segment()[1])
+        print(f"Agent is travelling from {self.state.current_node} to {self.state.current_travel.destination}. \
+                      speed = {speed}")
         self.state.stay_travelling(speed)
         if self.state.status != AgentStatus.ENGAGED_IN_ACTIVITY:
             # 说明没结束
@@ -389,7 +394,3 @@ class Agent:
         """启动前往另一个节点的通勤。"""
         logging.debug(f"Agent is travelling from {current_node} to activity {action}.")
         self.state.start_travel_to_id(action)
-
-
-
-
