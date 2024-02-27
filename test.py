@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # 为每个参数添加默认值
     parser.add_argument("--schedule", nargs='+', type=str, default=["HOME", "WORK", "LEISURE"],
                         help="List of activities (e.g., HOME WORK LEISURE)")
-    parser.add_argument("--num_episodes", type=int, default=100000, help="Number of episodes for Q-learning")
+    parser.add_argument("--num_episodes", type=int, default=1, help="Number of episodes for Q-learning")
     parser.add_argument("--epsilon", type=float, default=0.2, help="Epsilon value for epsilon-greedy policy")
     parser.add_argument("--home", type=int, default=1, help="Home node ID")
 

@@ -302,7 +302,7 @@ class Agent:
         total_distance = self.state.current_travel.total_distance
         speed = traffic_state.get_speed(self.state.current_travel.get_current_road_segment()[0],
                                         self.state.current_travel.get_current_road_segment()[1])
-        print(f"Agent is travelling from {self.state.current_node} to {self.state.current_travel.destination}. \
+        logging.debug(f"Agent is travelling from {self.state.current_node} to {self.state.current_travel.destination}. \
                       speed = {speed}")
         self.state.stay_travelling(speed)
         if self.state.status != AgentStatus.ENGAGED_IN_ACTIVITY:
