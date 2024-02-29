@@ -20,6 +20,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_episodes", type=int, default=1, help="Number of episodes for Q-learning")
     parser.add_argument("--epsilon", type=float, default=0.2, help="Epsilon value for epsilon-greedy policy")
     parser.add_argument("--home", type=int, default=1, help="Home node ID")
+    parser.add_argument("--method", type=str, default="q_learning", help="Method to use for training")
 
     args = parser.parse_args()
 
@@ -98,6 +99,7 @@ if __name__ == '__main__':
 
     # 使用os.path.join构建文件路径以确保跨平台兼容性
     plt.savefig(os.path.join(output_folder, 'reward_{}_{}.png'.format(args.schedule, args.home)))
+    plt.close()
 
     # 保存q_table
     with open(os.path.join(output_folder, 'q_table_{}_{}.pkl'.format(args.schedule, args.home)), 'wb') as f:

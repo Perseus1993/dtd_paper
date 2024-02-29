@@ -1,15 +1,20 @@
 import logging
 import sys
-from random import random
+from collections import deque
+import random
 
 import networkx as nx
 import numpy as np
+import torch
+from torch import optim
 from tqdm import tqdm
 
 from exp.Node import NodeType
 from exp.agent import Agent, AgentStatus, Action
 from exp.traffic import Traffic_State
 from exp.util import print_banner
+from exp.dqn import DQNNetwork
+import torch.nn.functional as F
 
 
 class RFState:
@@ -34,7 +39,8 @@ def get_action_space(G: nx.Graph):
 
 
 class Env:
-    def __init__(self, G: nx.Graph, nodes_dict: dict, max_schedule_num, mode='single', num_agents=1):
+    def __init__(self, G: nx.Graph, nodes_dict: dict, max_schedule_num, mode='single', num_agents=1,
+                 method='q_learning'):
         self.mode = mode
         self.G = G
         self.nodes_dict = nodes_dict
@@ -57,7 +63,7 @@ class Env:
         print_banner()
 
         print("___________________env created__________________________")
-        self.generate_rl_env()
+        # self.generate_rl_env()
         print("___________________rl initiate__________________________")
         self.traffic_state = Traffic_State(G)
         print("___________________traffic state initiate________________")
@@ -127,6 +133,7 @@ class Env:
                 logging.debug(f"Agent {agent.id} is travelling.")
                 agent.agent_keep_travelling(self.traffic_state)
             else:
+                print(actions, index)
                 if actions[index] != -1:
                     agent.step(actions[index])
 
@@ -228,7 +235,8 @@ class Env:
                 if rf_state.cur_act_order == len(agent.state.schedule) - 1:
                     logging.debug("all activities are done, no action,just stay.")
                     actions[index] = cur_loc
-                possible_next_activity_nodes = agent.get_possible_actions(cur_loc, cur_act_order, cur_act_start_time, cur_time)
+                possible_next_activity_nodes = agent.get_possible_actions(cur_loc, cur_act_order, cur_act_start_time,
+                                                                          cur_time)
                 # Assuming possible_next_activity_nodes is already a list of IDs
                 possible_ids.extend(possible_next_activity_nodes)  # Merge lists
                 possible_ids.append(cur_loc)  # Add current location as a possible stay action
@@ -384,3 +392,90 @@ class Env:
                 self.traffic_state.road_segments[cur_segment]['cur_traffic'] += 1
                 logging.info(
                     f"Segment {cur_segment} traffic updated. + 1  = {self.traffic_state.road_segments[cur_segment]['cur_traffic']}")
+
+    def dqn(self, num_episodes, gamma, epsilon):
+        def state2tensor(state: RFState):
+            cur_loc, cur_act_order, cur_act_start_time, cur_time = state.get_info()
+            # Convert to tensors
+            cur_loc = torch.FloatTensor([cur_loc])
+            cur_act_order = torch.FloatTensor([cur_act_order])
+            cur_act_start_time = torch.FloatTensor([cur_act_start_time])
+            cur_time = torch.FloatTensor([cur_time])
+            # Concatenate tensors along a new dimension
+            state_tensor = torch.cat([cur_loc, cur_act_order, cur_act_start_time, cur_time], dim=0)
+            return state_tensor
+
+        state_size = 4
+        action_size = 24
+        print(f"State size: {state_size}, Action size: {action_size}")
+        dqn_network = DQNNetwork(state_size, action_size)
+        optimizer = optim.Adam(dqn_network.parameters(), lr=0.001)
+        replay_memory = deque(maxlen=10000)
+        batch_size = 8
+
+        for i_episode in tqdm(range(num_episodes)):
+            states, _ = self.reset()
+            total_reward = 0
+            state_tensor = state2tensor(states[0])
+            for t in range(239):
+                if np.random.rand() < epsilon:
+                    action_values = dqn_network(state_tensor)
+                    # print(f"Action values: {action_values}")
+                    action = torch.argmax(action_values).item()
+                    # print(f"Action: {action}")
+
+                else:
+                    action = np.random.randint(1, action_size + 1)
+
+                # action_list = [action] + [3 for _ in range(len(self.agents) - 1)]
+                action_list = [action]
+                print(f"Action: {action_list}")
+
+                next_state_list, reward_list = self.step_in_sim(action_list)
+                if reward_list[0] is not None and next_state_list[0] is not None:
+                    next_state_tensor = state2tensor(next_state_list[0])
+                    total_reward += reward_list[0]
+                    # 存储转换
+                    replay_memory.append((state_tensor, action, reward_list[0], next_state_tensor))
+                    print(f"state_tensor: {state_tensor}")
+                    print(f"action: {action}")
+                    print(f"reward: {reward_list[0]}")
+                    print(f"next_state_tensor: {next_state_tensor}")
+
+                    # 学习
+                    if len(replay_memory) > batch_size:
+                        minibatch = random.sample(replay_memory, batch_size)
+                        states, actions, rewards, next_states = zip(*minibatch)
+                        print("replay_memory ")
+
+                        # 使用torch.stack来转换states和next_states
+                        states = torch.stack(states).float()
+                        next_states = torch.stack(next_states).float()
+
+                        # 直接转换actions和rewards为张量
+                        actions = torch.tensor(actions).long()  # 动作通常是整数，所以使用torch.LongTensor
+                        rewards = torch.tensor(rewards).float()  # 奖励可以是浮点数
+
+                        print(states)
+                        print(actions)
+                        print(rewards)
+                        print(next_states)
+
+                        Q_expected = dqn_network(states)
+                        print(Q_expected)
+                        Q_expected = Q_expected.gather(1, actions.unsqueeze(1)).squeeze(1)
+                        Q_targets_next = dqn_network(next_states).detach().max(1)[0]
+                        Q_targets = rewards + (gamma * Q_targets_next)
+
+                        loss = F.mse_loss(Q_expected, Q_targets)
+
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
+                    else:
+                        continue
+
+                # 减少 epsilon
+                epsilon = max(epsilon * 0.99, 0.01)  # 逐步减少探索率
+
+        return dqn_network
