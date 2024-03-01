@@ -63,7 +63,7 @@ class Env:
         print_banner()
 
         print("___________________env created__________________________")
-        # self.generate_rl_env()
+        self.generate_rl_env()
         print("___________________rl initiate__________________________")
         self.traffic_state = Traffic_State(G)
         print("___________________traffic state initiate________________")
@@ -95,10 +95,11 @@ class Env:
             self.agents.append(Agent(default_schedule, home, self.G, self.nodes_dict))
             self.agents[0].available_actions = self.action_space
         else:
-            num_home_nodes = len(self.home_nodes)
+            # num_home_nodes = len(self.home_nodes)
+            num_home_nodes = 1
             # random number of home nodes
             home_generated_num = [num_agents for _ in range(num_home_nodes)]
-            for i in range(num_home_nodes):
+            for i in range(1):
                 agents_in_this_home = home_generated_num[i]
                 for j in range(agents_in_this_home):
                     cur_agent = Agent(default_schedule, self.home_nodes[i].id, self.G, self.nodes_dict)
@@ -127,13 +128,12 @@ class Env:
         self.update_traffic()
 
         state_list = [None for _ in range(len(self.agents))]
-        reward_list = [None for _ in range(len(self.agents))]
         for index, agent in enumerate(self.agents):
             if agent.state.status == AgentStatus.TRAVELLING:
                 logging.debug(f"Agent {agent.id} is travelling.")
                 agent.agent_keep_travelling(self.traffic_state)
             else:
-                print(actions, index)
+                # print(actions, index)
                 if actions[index] != -1:
                     agent.step(actions[index])
 
@@ -144,7 +144,8 @@ class Env:
                 cur_loc, cur_act_order, current_activity_duration = content
                 cur_act_start_time = cur_time - current_activity_duration
                 logging.debug(
-                    f"cur_loc: {cur_loc}, cur_act_order: {cur_act_order}, cur_act_start_time: {cur_act_start_time}, cur_time: {cur_time}")
+                    f"cur_loc: {cur_loc}, cur_act_order: {cur_act_order}, cur_act_start_time: {cur_act_start_time}, "
+                    f"cur_time: {cur_time}")
                 state_list[index] = RFState(cur_loc, cur_act_order, cur_act_start_time, cur_time)  # 直接通过索引更新状态
         reward_list = self.get_step_reward()  # 直接通过索引更新奖励
         # 如果content为None，state_list和reward_list中对应的元素保持为None，无需再次操作
@@ -341,11 +342,11 @@ class Env:
                             action = actions[index]
                             reward = rewards[index]
                             next_action = next_actions[index]
-                            # print(f"state_key: {state_key}, action: {action}, reward: {reward}")
+                            print(
+                                f"state_key: {state_key}, action: {action}, reward: {reward}, next_state_key: {next_state_key}, next_action: {next_action}")
                             old_q_value = qt[state_key][action]
-                            qt[state_key][action] += alpha * \
-                                                     (reward + gamma * qt[next_state_key][next_action] - qt[state_key][
-                                                         action])
+                            new_q_value = qt[next_state_key][next_action]
+                            qt[state_key][action] += alpha * (reward + gamma * new_q_value - old_q_value)
                             logging.info("update state: {}, next_state: {}".format(state, next_state))
                             logging.info("Q table updated: old_q_value: {}, new_q_value: {}".format(old_q_value,
                                                                                                     qt[state_key][
@@ -414,39 +415,88 @@ class Env:
         batch_size = 8
 
         for i_episode in tqdm(range(num_episodes)):
+            print(f"Episode {i_episode + 1}/{num_episodes}")
             states, _ = self.reset()
             total_reward = 0
             state_tensor = state2tensor(states[0])
-            for t in range(239):
+            travel_happened = False
+            last_real_action = None
+            last_activity_flag = False
+            for t in range(20):
+                print(f"######  Step {t + 1}/240 ######")
+                print(self.agents[0].state)
+                cur_act_order = self.agents[0].state.current_activity_number
+                cur_loc = self.agents[0].state.current_node.id
+                possible_next_activity_nodes = self.agents[0].get_possible_actions(cur_act_order)
+                possible_next_activity_nodes.append(cur_loc)
+                print(f"Possible next activity nodes: {possible_next_activity_nodes}")
+
                 if np.random.rand() < epsilon:
+                    # 获取DQN网络预测的动作值
                     action_values = dqn_network(state_tensor)
-                    # print(f"Action values: {action_values}")
-                    action = torch.argmax(action_values).item()
-                    # print(f"Action: {action}")
+                    print(f"Action values: {action_values}")
+
+                    # 创建一个与action_values形状相同的掩码，初始值为非常小的数
+                    mask = torch.full(action_values.shape, -float('inf'))
+
+                    # 将可能的动作位置设置为0，使这些位置的动作值不受影响
+                    mask[torch.tensor(possible_next_activity_nodes) - 1] = 0
+
+                    # 应用掩码到动作值
+                    adjusted_action_values = action_values + mask
+                    print(f"Action values adjusted: {adjusted_action_values}")
+
+                    # 选择调整后的最大值对应的动作
+                    max_index = torch.argmax(adjusted_action_values).item()
+                    print(f"Max index: {max_index}")
+                    action = max_index + 1
+                    print(f"Action selected: {action}")
 
                 else:
-                    action = np.random.randint(1, action_size + 1)
+                    action = np.random.choice(possible_next_activity_nodes)
 
                 # action_list = [action] + [3 for _ in range(len(self.agents) - 1)]
-                action_list = [action]
-                print(f"Action: {action_list}")
+                if last_activity_flag and self.agents[0].state.status == AgentStatus.ENGAGED_IN_ACTIVITY:
+                    print("Agent's last activity, no action, just stay.")
+                    action = self.agents[0].state.current_node.id
+                print(f"Action generated : {action}")
 
-                next_state_list, reward_list = self.step_in_sim(action_list)
+                before_agent_status = self.agents[0].state.status
+                next_state_list, reward_list = self.step_in_sim([action])
+                after_agent_status = self.agents[0].state.status
+
+                if before_agent_status == AgentStatus.TRAVELLING and after_agent_status == AgentStatus.ENGAGED_IN_ACTIVITY:
+                    print("Agent arrived at the destination.")
+                print(f"step_in_sim Next state: {next_state_list[0]}")
+                print(f"step_in_sim Reward: {reward_list[0]}")
+
                 if reward_list[0] is not None and next_state_list[0] is not None:
+
+                    # 首先判断如果是agent最后一个activity，那么动作只能是当前位置
+                    if last_activity_flag and self.agents[0].state.status == AgentStatus.ENGAGED_IN_ACTIVITY:
+                        print("Agent's last activity, no action, just stay.")
+                        real_action = last_real_action
+                    else:
+                        # 如果旅行发生，使用当前动作或者旅程前的最后一个动作
+                        real_action = last_real_action if travel_happened else action
+                        travel_happened = False  # 重置旅行发生标志
+                    if self.agents[0].state.current_activity_number == len(self.agents[0].state.schedule) - 1:
+                        last_activity_flag = True
                     next_state_tensor = state2tensor(next_state_list[0])
                     total_reward += reward_list[0]
                     # 存储转换
-                    replay_memory.append((state_tensor, action, reward_list[0], next_state_tensor))
-                    print(f"state_tensor: {state_tensor}")
-                    print(f"action: {action}")
-                    print(f"reward: {reward_list[0]}")
-                    print(f"next_state_tensor: {next_state_tensor}")
+                    replay_memory.append((state_tensor, real_action, reward_list[0], next_state_tensor))
+                    print(f">> state_tensor: {state_tensor}")
+                    print(f">> action: {real_action}")
+                    print(f">> reward: {reward_list[0]}")
+                    print(f">> next_state_tensor: {next_state_tensor}")
+                    state_tensor = next_state_tensor
 
                     # 学习
                     if len(replay_memory) > batch_size:
                         minibatch = random.sample(replay_memory, batch_size)
                         states, actions, rewards, next_states = zip(*minibatch)
-                        print("replay_memory ")
+                        # print("replay_memory ")
 
                         # 使用torch.stack来转换states和next_states
                         states = torch.stack(states).float()
@@ -461,10 +511,15 @@ class Env:
                         print(rewards)
                         print(next_states)
 
-                        Q_expected = dqn_network(states)
+                        Q_values = dqn_network(states)  # 计算当前状态下所有可能动作的Q值
+                        print(Q_values.shape)
+                        adjusted_actions = actions - 1  # 将动作编号从1开始转换为0开始
+                        Q_expected = Q_values.gather(1, adjusted_actions.unsqueeze(-1)).squeeze(-1)
+
                         print(Q_expected)
-                        Q_expected = Q_expected.gather(1, actions.unsqueeze(1)).squeeze(1)
-                        Q_targets_next = dqn_network(next_states).detach().max(1)[0]
+                        next_Q_values = dqn_network(next_states).detach()  # 计算下一个状态下所有可能动作的Q值，并阻止梯度传播
+                        Q_targets_next = next_Q_values.max(1)[0]  # 选择最大的Q值作为下一个状态的目标Q值
+
                         Q_targets = rewards + (gamma * Q_targets_next)
 
                         loss = F.mse_loss(Q_expected, Q_targets)
@@ -472,8 +527,14 @@ class Env:
                         optimizer.zero_grad()
                         loss.backward()
                         optimizer.step()
-                    else:
-                        continue
+                        travel_happened = False
+
+
+                else:
+                    # 发生了旅行，要记录旅行前最后一个action
+                    if not travel_happened:
+                        last_real_action = action  # 记录可能导致旅行的动作
+                    travel_happened = True
 
                 # 减少 epsilon
                 epsilon = max(epsilon * 0.99, 0.01)  # 逐步减少探索率

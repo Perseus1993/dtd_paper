@@ -377,7 +377,7 @@ class Agent:
             logging.debug("Agent is not in activity.")
             return None
 
-    def get_possible_actions(self, cur_loc, cur_act_order, cur_act_start_time, cur_time):
+    def get_possible_actions(self, cur_act_order):
         # 下一个活动
         next_act_order = cur_act_order + 1
         if next_act_order >= len(self.state.schedule):

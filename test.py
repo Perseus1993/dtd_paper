@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # 为每个参数添加默认值
     parser.add_argument("--schedule", nargs='+', type=str, default=["HOME", "WORK", "LEISURE"],
                         help="List of activities (e.g., HOME WORK LEISURE)")
-    parser.add_argument("--num_episodes", type=int, default=1, help="Number of episodes for Q-learning")
+    parser.add_argument("--num_episodes", type=int, default=10000, help="Number of episodes for Q-learning")
     parser.add_argument("--epsilon", type=float, default=0.2, help="Epsilon value for epsilon-greedy policy")
     parser.add_argument("--home", type=int, default=1, help="Home node ID")
     parser.add_argument("--method", type=str, default="q_learning", help="Method to use for training")
@@ -35,8 +35,8 @@ if __name__ == '__main__':
     schedule = [Activity[activity] for activity in args.schedule]
 
     env.generate_agent(schedule, 1, 1)
-    env.generate_agent(schedule, 1, 2)
-    env.generate_agent(schedule, 1, 7)
+    # env.generate_agent(schedule, 1, 2)
+    # env.generate_agent(schedule, 1, 7)
 
     # 使用命令行参数
     epsilon = args.epsilon

@@ -25,7 +25,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # 配置日志级别和格式
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
     G, nodes_dict = get_graph()
     max_schedule_num = len(args.schedule)
