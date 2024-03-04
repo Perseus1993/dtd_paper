@@ -236,8 +236,7 @@ class Env:
                 if rf_state.cur_act_order == len(agent.state.schedule) - 1:
                     logging.debug("all activities are done, no action,just stay.")
                     actions[index] = cur_loc
-                possible_next_activity_nodes = agent.get_possible_actions(cur_loc, cur_act_order, cur_act_start_time,
-                                                                          cur_time)
+                possible_next_activity_nodes = agent.get_possible_actions(cur_act_order)
                 # Assuming possible_next_activity_nodes is already a list of IDs
                 possible_ids.extend(possible_next_activity_nodes)  # Merge lists
                 possible_ids.append(cur_loc)  # Add current location as a possible stay action
@@ -342,8 +341,8 @@ class Env:
                             action = actions[index]
                             reward = rewards[index]
                             next_action = next_actions[index]
-                            print(
-                                f"state_key: {state_key}, action: {action}, reward: {reward}, next_state_key: {next_state_key}, next_action: {next_action}")
+                            # print(
+                            #     f"state_key: {state_key}, action: {action}, reward: {reward}, next_state_key: {next_state_key}, next_action: {next_action}")
                             old_q_value = qt[state_key][action]
                             new_q_value = qt[next_state_key][next_action]
                             qt[state_key][action] += alpha * (reward + gamma * new_q_value - old_q_value)
