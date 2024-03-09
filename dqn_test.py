@@ -15,7 +15,7 @@ if __name__ == '__main__':
     print(os.path.dirname(__file__))
     parser = argparse.ArgumentParser(description="Run Q-learning with custom parameters.")
     # 为每个参数添加默认值
-    parser.add_argument("--schedule", nargs='+', type=str, default=["HOME", "WORK", "LEISURE"],
+    parser.add_argument("--schedule", nargs='+', type=str, default=["HOME",  "WORK","LEISURE"],
                         help="List of activities (e.g., HOME WORK LEISURE)")
     parser.add_argument("--num_episodes", type=int, default=1, help="Number of episodes for Q-learning")
     parser.add_argument("--epsilon", type=float, default=0.2, help="Epsilon value for epsilon-greedy policy")
@@ -36,4 +36,4 @@ if __name__ == '__main__':
 
     env.generate_agent(schedule, 1, 1)
 
-    env.dqn(num_episodes=100, gamma=0.9, epsilon=0.2)
+    env.dqn(num_episodes=300, gamma=0.8, epsilon=0.2)
