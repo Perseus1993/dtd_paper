@@ -1,58 +1,110 @@
-# Day-to-Day Route–Departure Choice Dynamics with Two-Stage Bayesian Perception Updating
+<div align="center">
 
-This repository contains the research code and materials for a study on day-to-day (DTD) traffic dynamics with simultaneous route and departure-time (SRD) choice under imperfect and lagged travel information.
+# 🚗 Day-to-Day Route–Departure Choice Dynamics
 
-## Research Overview
+### Two-Stage Bayesian Perception Updating under Alternative Information Structures
 
-We study how travelers form and update their perceived travel times using a **two-stage Bayesian perception updating scheme**, which integrates:
-- **Pre-trip information** (broadcast before the trip)
-- **Post-trip experience** (actual travel time after the trip)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Paper](https://img.shields.io/badge/Paper-Under%20Review-orange.svg)]()
 
-Given perceived costs (including schedule delay penalties), travelers choose route–departure alternatives according to a **random-utility Logit model**, while within-day congestion is represented by a **static Bureau of Public Roads (BPR)** performance function.
+</div>
 
-## Key Features
+---
 
-### Information Structures
-We compare three information provision scenarios:
-- **S0 (No information)**: Experience-only learning
-- **S1 (Historical broadcast)**: System-wide historical information
-- **S2 (Information sharing)**: Peer-to-peer experience sharing with reliability depending on previous-day choice proportion
+## 📖 Overview
 
-### Experimental Settings
-- **Networks**: Toy network and Sioux Falls case study
-- **Disruption scenarios**: Capacity reduction during specified days
-- **Metrics**: Travel time, relative gap, switching behaviors, departure-time patterns
+This repository implements a **day-to-day (DTD) traffic simulation framework** for studying how travelers learn and adapt their route and departure-time choices under imperfect travel information.
 
-### Main Findings
-Numerical experiments highlight an **efficiency–stability trade-off**:
-- Sufficiently reliable broadcast information can mitigate peak disruption congestion
-- However, it may induce stronger day-to-day re-allocation
-- Share-dependent information can delay return-to-baseline due to herding effects
+### Key Contributions
 
-## Paper Status
+| Component | Description |
+|-----------|-------------|
+| **Two-Stage Bayesian Updating** | Travelers integrate pre-trip broadcast info and post-trip experience |
+| **SRD Choice Model** | Simultaneous route and departure-time choice with schedule delay penalties |
+| **Information Structures** | Compare no-info, historical broadcast, and peer-to-peer sharing |
+| **Disruption Analysis** | Study network resilience under capacity reduction scenarios |
 
-📝 **Manuscript in preparation**
+---
 
-The full paper, code implementation, and experimental data will be made available upon publication.
+## 🏗️ Project Structure
 
-## Contact
+```
+dtd_paper/
+├── dtd_srdt/                    # Core simulation library
+│   ├── common.py                # Bayesian belief, BPR function, utilities
+│   ├── toy_sim.py               # Toy network simulation
+│   ├── sioux_sim.py             # Sioux Falls network simulation
+│   ├── metrics.py               # Performance metrics
+│   └── plotting.py              # Visualization utilities
+├── bdi_test/                    # Experiment scripts
+│   ├── baseline1_srdt_bayes_toy.py
+│   ├── baseline1_srdt_bayes_sioux.py
+│   └── paper_figs.py            # Generate paper figures
+├── run_all_experiments.py       # Main experiment runner
+└── requirements.txt
+```
 
-For questions or collaboration inquiries, please contact:
-- Gen Li: gen_li1993@163.com
+---
 
-## Citation
+## 🚀 Quick Start
 
-If you find this work useful, please cite:
+### Installation
+
+```bash
+git clone https://github.com/Perseus1993/dtd_paper.git
+cd dtd_paper
+pip install -r requirements.txt
+```
+
+### Run Experiments
+
+```bash
+# Run all experiments and generate figures
+python run_all_experiments.py
+
+# Run specific experiment
+python bdi_test/baseline1_srdt_bayes_sioux.py --scenario S1 --days 100
+```
+
+---
+
+## 📊 Information Scenarios
+
+| Scenario | Name | Description |
+|:--------:|------|-------------|
+| **S0** | No Information | Experience-only learning |
+| **S1** | Historical Broadcast | System-wide historical travel times |
+| **S2** | Peer Sharing | Share-dependent reliability based on choice proportion |
+
+---
+
+## 📈 Key Findings
+
+> **Efficiency–Stability Trade-off**: Reliable broadcast information mitigates peak congestion but may induce stronger day-to-day oscillations. Share-dependent information can delay equilibrium recovery due to herding effects.
+
+---
+
+## 📝 Citation
 
 ```bibtex
 @article{li2026dtd,
-  title={Day-to-Day Route--Departure Choice Dynamics with Two-Stage Bayesian Perception Updating under Alternative Information Structures},
+  title={Day-to-Day Route--Departure Choice Dynamics with Two-Stage 
+         Bayesian Perception Updating under Alternative Information Structures},
   author={Li, Gen and Xu, Pengcheng and Lan, Jieyuan},
   journal={Under review},
   year={2026}
 }
 ```
 
-## License
+---
 
-This repository is currently private. Code and data will be released under an open-source license upon paper acceptance.
+## 📬 Contact
+
+**Gen Li** - gen_li1993@163.com
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
